@@ -1,12 +1,13 @@
 resource "aws_instance" "private" {
-  count         = 2
   ami           = var.ami
   instance_type = var.instance_type
   subnet_id     = element(var.private_subnets, count.index)
   key_name      = var.key_name
-  user_data     = file(var.user_data)
+  count         = 2
+  vpc_security_group_ids = var.security_groups
+  user_data     = var.user_data # Pass user data from the root module
 
   tags = {
-    Name = "${var.name}-private-instance-${count.index}"
+    Name = "${var.name}-private-${count.index}"
   }
 }

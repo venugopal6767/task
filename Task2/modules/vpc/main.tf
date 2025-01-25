@@ -44,8 +44,13 @@ resource "aws_nat_gateway" "main" {
 }
 
 resource "aws_eip" "nat" {
-  vpc = true
+  domain = "vpc" # Replace `vpc = true` with `domain = "vpc"`
+
+  tags = {
+    Name = "${var.name}-nat-eip"
+  }
 }
+
 
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
