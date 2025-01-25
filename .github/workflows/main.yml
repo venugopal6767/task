@@ -26,6 +26,7 @@ jobs:
 
     - name: Build Docker image
       run: |
+        cd Task4
         docker build -t custom-image .
 
     - name: Tag Docker image
