@@ -1,40 +1,3 @@
-# Provider Configuration for AWS region us-east-1
-provider "aws" {
-  region = "us-east-1"
-}
-
-# Input Variables
-
-variable "vpc_cidr_block" {
-  description = "The CIDR block for the VPC"
-  type        = string
-  default     = "10.0.0.0/16"
-}
-
-variable "public_subnet_1_cidr" {
-  description = "CIDR block for the first public subnet"
-  type        = string
-  default     = "10.0.1.0/24"
-}
-
-variable "public_subnet_2_cidr" {
-  description = "CIDR block for the second public subnet"
-  type        = string
-  default     = "10.0.2.0/24"
-}
-
-variable "private_subnet_1_cidr" {
-  description = "CIDR block for the first private subnet"
-  type        = string
-  default     = "10.0.3.0/24"
-}
-
-variable "private_subnet_2_cidr" {
-  description = "CIDR block for the second private subnet"
-  type        = string
-  default     = "10.0.4.0/24"
-}
-
 # Create the VPC
 resource "aws_vpc" "main" {
   cidr_block = var.vpc_cidr_block
@@ -166,48 +129,59 @@ resource "aws_route_table_association" "private_2" {
   route_table_id = aws_route_table.private.id
 }
 
-# Output the VPC ID
-output "vpc_id" {
-  description = "The ID of the VPC"
-  value       = aws_vpc.main.id
+resource "aws_security_group" "sg" {
+  name        = "vpc-security-group"
+  description = "Security group for web and SSH access"
+  vpc_id      =  aws_vpc.main.id   # Ensure the SG is tied to your VPC
+
+  ingress {
+    description = "Allow HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    description = "Allow HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # Modify as needed to restrict access
+  }
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]  # Modify as needed to restrict access
+  }
+
+  ingress {
+    description = "Allow SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["192.168.1.0/24"] # Restrict SSH to your IP or CIDR
+  }
+
+  egress {
+    description = "Allow all outbound traffic"
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name        = "example-security-group"
+    Environment = "dev"
+  }
 }
 
-# Output the CIDR block of the VPC
-output "vpc_cidr_block" {
-  description = "The CIDR block of the VPC"
-  value       = aws_vpc.main.cidr_block
-}
-
-# Output the public subnet IDs
-output "public_subnet_1_id" {
-  description = "The ID of the first public subnet"
-  value       = aws_subnet.public_subnet_1.id
-}
-
-output "public_subnet_2_id" {
-  description = "The ID of the second public subnet"
-  value       = aws_subnet.public_subnet_2.id
-}
-
-# Output the private subnet IDs
-output "private_subnet_1_id" {
-  description = "The ID of the first private subnet"
-  value       = aws_subnet.private_subnet_1.id
-}
-
-output "private_subnet_2_id" {
-  description = "The ID of the second private subnet"
-  value       = aws_subnet.private_subnet_2.id
-}
-
-# Output the NAT Gateway ID
-output "nat_gateway_id" {
-  description = "The ID of the NAT Gateway"
-  value       = aws_nat_gateway.main.id
-}
-
-# Output the Internet Gateway ID
-output "internet_gateway_id" {
-  description = "The ID of the Internet Gateway"
-  value       = aws_internet_gateway.main.id
-}
