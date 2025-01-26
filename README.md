@@ -16,7 +16,7 @@ ecs.tf
 
 4.created a hosted zone in aws and created a A records for both subdomains and configured the load balancer
 
-5.stored secrets in aws secrets manager and retrived using secrets manager data  and passed to db and task definition 
+5.stored secrets in aws secrets manager and retrived using secrets manager data  and passed to db
 
 go to Task1:
 
@@ -102,6 +102,8 @@ using Terraform:
 #task5
 -----------
 
-1. created terraform code to deploy static website on s3 bucket 
+1. created terraform code to deploy static website on s3 bucket
+
+   http://venugopalmoka.site.s3-website.eu-west-2.amazonaws.com
 
 
