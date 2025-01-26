@@ -63,9 +63,7 @@ Manual:
 using Terraform:
 1. created entire setup using terraform 
 
-2. unable to load userdata
-
-3. If we configure manually it will work
+3. If we configurev userdata  manually it will work
    
          ec2-alb-docker.venugopalmoka.site -----> docker containeroutput
    
