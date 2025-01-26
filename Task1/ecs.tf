@@ -290,7 +290,7 @@ resource "aws_lb_listener_rule" "service_80_routing" {
 
   condition {
     host_header {
-      values = ["service1.${var.domain_name}"]
+      values = ["wordpress.${var.domain_name}"]
     }
   }
 }
@@ -306,14 +306,14 @@ resource "aws_lb_listener_rule" "service_3000_routing" {
 
   condition {
     host_header {
-      values = ["service2.${var.domain_name}"]
+      values = ["microservice.${var.domain_name}"]
     }
   }
 }
 
 # ECS Service for Service 80 (nginx:latest on port 80)
 resource "aws_ecs_service" "service_80" {
-  name            = "service-80"
+  name            = "wordpress"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.service_80_task.arn
   desired_count   = 2
@@ -339,7 +339,7 @@ resource "aws_ecs_service" "service_80" {
 
 # ECS Service for Service 3000 (wordpress:latest on port 3000)
 resource "aws_ecs_service" "service_3000" {
-  name            = "service-3000"
+  name            = "microservice"
   cluster         = aws_ecs_cluster.main.id
   task_definition = aws_ecs_task_definition.service_3000_task.arn
   desired_count   = 2
@@ -371,7 +371,7 @@ data "aws_route53_zone" "main" {
 # Create A records for your services in the existing hosted zone
 resource "aws_route53_record" "service_80_record" {
   zone_id = data.aws_route53_zone.main.id
-  name    = "service1.${var.domain_name}"
+  name    = "wordpress.${var.domain_name}"
   type    = "A"
 
   alias {
@@ -383,7 +383,7 @@ resource "aws_route53_record" "service_80_record" {
 
 resource "aws_route53_record" "service_3000_record" {
   zone_id = data.aws_route53_zone.main.id
-  name    = "service2.${var.domain_name}"
+  name    = "microservice.${var.domain_name}"
   type    = "A"
 
   alias {
@@ -403,5 +403,5 @@ output "service_80_dns" {
 }
 
 output "service_3000_dns" {
-  value = "service2.${var.domain_name}"
+  value = "microservice.${var.domain_name}"
 }
