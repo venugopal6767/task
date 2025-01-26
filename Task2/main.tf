@@ -1,50 +1,27 @@
-terraform {
-  required_providers {
-    aws = {
-      source  = "hashicorp/aws"
-      version = "~> 5.0" # Specify the AWS provider version
-    }
-  }
-
-  required_version = ">= 1.5.0" # Ensure Terraform version compatibility
-}
-
 provider "aws" {
-  region = var.region # AWS region to deploy resources
+  region = var.region
 }
 
 module "vpc" {
-  source             = "./modules/vpc"
-  name               = "demo"
-  vpc_cidr           = "10.0.0.0/16"
-  public_subnets     = ["10.0.1.0/24", "10.0.2.0/24"]
-  private_subnets    = ["10.0.3.0/24", "10.0.4.0/24"]
-  availability_zones = ["us-east-1a", "us-east-1b"]
+  source = "./modules/vpc"
 }
 
-# Security Group allowing all traffic
-resource "aws_security_group" "all_traffic_sg" {
-  name        = "all-traffic-sg"
-  description = "Security group allowing all inbound and outbound traffic"
-  vpc_id      = module.vpc.vpc_id
+module "alb" {
+    source                    = "./modules/alb"
+    domain_name               = "venugopalmoka.site"
+    vpc_id                    = module.vpc.vpc_id
+    ecs_security_group_id     = module.vpc.security_group_id
+    public_subnet1_id         = module.vpc.public_subnet_1_id
+    public_subnet2_id         = module.vpc.public_subnet_2_id
+    instance_ids              = module.ec2.private_instance_ids 
+    
+}
 
-  ingress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"       # Allow all protocols
-    cidr_blocks = ["0.0.0.0/0"] # Allow traffic from all IPs
-  }
-
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"       # Allow all protocols
-    cidr_blocks = ["0.0.0.0/0"] # Allow traffic to all IPs
-  }
-
-  tags = {
-    Name = "all-traffic-sg"
-  }
+module "route53" {
+  source = "./modules/route53"
+  domain_name = "venugopalmoka.site"
+  zone_id = module.alb.alb_zone_id
+  alb_dns_name = module.alb.alb_dns_name
 }
 
 module "ec2" {
@@ -55,20 +32,6 @@ module "ec2" {
   key_name        = "venu-test"
   user_data       = filebase64("${path.root}/userdata.sh") # Use the userdata.sh file from root
   name            = "demo"
-  security_groups = [aws_security_group.all_traffic_sg.id] # Add the all-traffic SG
+  security_groups = module.vpc.security_group_id # Add the all-traffic SG
+  depends_on = [module.vpc]
 }
-
-
-module "alb" {
-  source              = "./modules/alb"
-  alb_name            = "my-application-lb"
-  security_groups     = [aws_security_group.all_traffic_sg.id]
-  subnets             = module.vpc.public_subnets
-  vpc_id              = module.vpc.vpc_id
-  tags                = { Name = "my-alb" }
-  target_group_1_name = "tg-1"
-  target_group_2_name = "tg-2"
-  ec2_instance_ids    = module.ec2.instance_ids  # Pass EC2 instance IDs here
-}
-
-

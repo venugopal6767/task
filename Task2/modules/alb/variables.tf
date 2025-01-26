@@ -1,40 +1,29 @@
-variable "alb_name" {
-  description = "The name of the Application Load Balancer"
+variable "domain_name" {
+  description = "The security group ID for ECS tasks"
   type        = string
-}
-
-variable "security_groups" {
-  description = "Security groups to attach to the load balancer"
-  type        = list(string)
-}
-
-variable "subnets" {
-  description = "Subnets to attach to the load balancer"
-  type        = list(string)
 }
 
 variable "vpc_id" {
-  description = "VPC ID where the ALB and target groups will be created"
+  description = "The security group ID for ECS tasks"
   type        = string
 }
 
-variable "tags" {
-  description = "Tags for resources"
-  type        = map(string)
-  default     = {}
-}
-
-variable "target_group_1_name" {
-  description = "Name of the first target group"
+variable "ecs_security_group_id" {
+  description = "The security group ID for ECS tasks"
   type        = string
 }
 
-variable "target_group_2_name" {
-  description = "Name of the second target group"
+variable "public_subnet1_id" {
+  description = "ID of the first private subnet"
   type        = string
 }
 
-variable "ec2_instance_ids" {
-  description = "List of EC2 instance IDs to attach to the target groups"
-  type        = list(string)
+variable "public_subnet2_id" {
+  description = "ID of the second private subnet"
+  type        = string
+}
+
+variable "instance_ids" {
+  description = "List of EC2 instance IDs"
+  type        = list(string)  # This should be a list of strings
 }

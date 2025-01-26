@@ -62,9 +62,7 @@ Manual:
 
 using Terraform:
 1. created entire setup using terraform 
-
-3. If we configurev userdata  manually it will work
-   
+  
          ec2-alb-docker.venugopalmoka.site -----> docker containeroutput
    
          ec2-alb-docker.venugopalmoka.sie ------> instance output

@@ -24,9 +24,9 @@ module "ecs" {
 }
 
 module "alb" {
-    source = "./modules/alb"
-    domain_name = "venugopalmoka.site"
-    vpc_id = module.vpc.vpc_id
+    source                    = "./modules/alb"
+    domain_name               = "venugopalmoka.site"
+    vpc_id                    = module.vpc.vpc_id
     ecs_security_group_id     = module.vpc.security_group_id
     public_subnet1_id         = module.vpc.public_subnet_1_id
     public_subnet2_id         = module.vpc.public_subnet_2_id

@@ -1,114 +1,110 @@
-# modules/alb_module/main.tf
-
-resource "aws_lb" "this" {
-  name               = var.alb_name
+# Application Load Balancer (ALB)
+resource "aws_lb" "app_lb" {
+  name               = "app-lb"
   internal           = false
   load_balancer_type = "application"
-  security_groups    = var.security_groups
-  subnets            = var.subnets
-  enable_deletion_protection = false
+  security_groups   = [var.ecs_security_group_id]
+  subnets            = [var.public_subnet1_id, var.public_subnet2_id]
 
-  tags = var.tags
+  enable_deletion_protection = false
+  enable_cross_zone_load_balancing = true
 }
 
-resource "aws_lb_target_group" "tg_1" {
-  name        = var.target_group_1_name
+# Target Group for Service 80 (wordpress:latest on port 80)
+resource "aws_lb_target_group" "target_group-1" {
+  name        = "Instance"
   port        = 80
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
-  target_type = "instance"
-  health_check {
-    path = "/healthcheck"
-  }
+  target_type = "ip"
 
-  tags = var.tags
+  health_check {
+    interval                = 30
+    path                    = "/"
+    protocol                = "HTTP"
+    timeout                 = 5
+    healthy_threshold       = 2
+    unhealthy_threshold     = 2
+  }
 }
 
-resource "aws_lb_target_group" "tg_2" {
-  name        = var.target_group_2_name
+# Target Group for Service 3000 (:latest on port 3000)
+resource "aws_lb_target_group" "target_group-2" {
+  name        = "Docker"
   port        = 8080
   protocol    = "HTTP"
   vpc_id      = var.vpc_id
-  target_type = "instance"
+  target_type = "ip"
+
   health_check {
-    path = "/healthcheck"
-  }
-
-  tags = var.tags
-}
-
-resource "aws_lb_listener" "http" {
-  load_balancer_arn = aws_lb.this.arn
-  port              = "80"
-  protocol          = "HTTP"
-
-  default_action {
-    type             = "fixed-response"
-    fixed_response {
-      status_code = 200
-      message_body = "OK"
-      content_type = "text/plain"
-    }
+    interval                = 30
+    path                    = "/"
+    protocol                = "HTTP"
+    timeout                 = 5
+    healthy_threshold       = 2
+    unhealthy_threshold     = 2
   }
 }
 
-# Forward Action for Target Group 1 based on Host Header
-resource "aws_lb_listener_rule" "host_based_weighted_routing" {
-  listener_arn = aws_lb_listener.http.arn
-  priority     = 99
 
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.tg_1.arn
-  }
-
-  condition {
-    host_header {
-      values = ["ec2-alb-instance.venugopalmoka.site"]  # Matching host header pattern
-    }
-  }
-}
-
-# Forward Action for Target Group 2 based on Host Header
-resource "aws_lb_listener_rule" "host_based_weighted_routing_2" {
-  listener_arn = aws_lb_listener.http.arn
-  priority     = 100
-
-  action {
-    type             = "forward"
-    target_group_arn = aws_lb_target_group.tg_2.arn
-  }
-
-  condition {
-    host_header {
-      values = ["ec2-alb-docker.venugopalmoka.site"]  # Matching host header pattern for a different target group
-    }
-  }
-}
-
-# Attach EC2 instances to both Target Groups (TG1 and TG2)
-resource "aws_lb_target_group_attachment" "tg_1_attachment" {
-  count             = length(var.ec2_instance_ids)
-  target_group_arn  = aws_lb_target_group.tg_1.arn
-  target_id         = element(var.ec2_instance_ids, count.index)
+# Attach EC2 instances to Target Group 1 (WordPress - Port 80)
+resource "aws_lb_target_group_attachment" "tg_1_ec2_attachment" {
+  count             = length(var.instance_ids)  # Attach EC2 instances to WordPress target group
+  target_group_arn  = aws_lb_target_group.target_group-1.arn
+  target_id         = element(var.instance_ids, count.index)
   port              = 80
 }
 
-resource "aws_lb_target_group_attachment" "tg_2_attachment" {
-  count             = length(var.ec2_instance_ids)
-  target_group_arn  = aws_lb_target_group.tg_2.arn
-  target_id         = element(var.ec2_instance_ids, count.index)
+# Attach EC2 instances to Target Group 2 (Docker - Port 8080)
+resource "aws_lb_target_group_attachment" "tg_2_ec2_attachment" {
+  count             = length(var.instance_ids)  # Attach EC2 instances to Docker target group
+  target_group_arn  = aws_lb_target_group.target_group-2.arn
+  target_id         = element(var.instance_ids, count.index)
   port              = 8080
 }
 
-output "alb_arn" {
-  value = aws_lb.this.arn
+# ALB Listener for HTTP routing based on Host Header
+resource "aws_lb_listener" "http_listener" {
+  load_balancer_arn = aws_lb.app_lb.arn
+  port              = 80
+  protocol          = "HTTP"
+
+  # Default action
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.target_group-1.arn
+  }
 }
 
-output "tg_1_arn" {
-  value = aws_lb_target_group.tg_1.arn
+# Add routing rules based on domain (host)
+resource "aws_lb_listener_rule" "target_group-1" {
+  listener_arn = aws_lb_listener.http_listener.arn
+  priority     = 100  # WordPress routing rule with higher priority
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.target_group-1.arn
+  }
+
+  condition {
+    host_header {
+      values = ["ec2-alb-instance.${var.domain_name}"]
+    }
+  }
 }
 
-output "tg_2_arn" {
-  value = aws_lb_target_group.tg_2.arn
+resource "aws_lb_listener_rule" "target_group-2" {
+  listener_arn = aws_lb_listener.http_listener.arn
+  priority     = 200  # Nginx routing rule with lower priority
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.target_group-2.arn
+  }
+
+  condition {
+    host_header {
+      values = ["ec2-alb-docker.${var.domain_name}"]
+    }
+  }
 }
