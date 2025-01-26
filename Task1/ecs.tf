@@ -4,6 +4,30 @@ variable "domain_name" {
   default     = "venugopalmoka.site"
 }
 
+
+# IAM Policy to allow ECS task to pull secrets
+resource "aws_iam_policy" "ecs_secrets_manager_policy" {
+  name        = "ecs-secrets-manager-policy"
+  description = "Policy to allow ECS tasks to retrieve secrets from Secrets Manager"
+  policy      = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action   = "secretsmanager:GetSecretValue"
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+# Attach the secrets manager policy to the ECS execution role
+resource "aws_iam_role_policy_attachment" "ecs_execution_role_secrets_policy" {
+  role       = aws_iam_role.ecs_execution_role.name
+  policy_arn = aws_iam_policy.ecs_secrets_manager_policy.arn
+}
+
+
 # ECS Task Role
 resource "aws_iam_role" "ecs_task_role" {
   name = "ecs-task-role"
@@ -40,12 +64,47 @@ resource "aws_iam_role" "ecs_execution_role" {
   })
 }
 
+resource "aws_iam_policy" "ecs_ecr_policy" {
+  name        = "ecs-ecr-policy"
+  description = "Policy to allow ECS to pull images from ECR"
+  policy      = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action   = "ecr:GetAuthorizationToken"
+        Effect   = "Allow"
+        Resource = "*"
+      },
+      {
+        Action   = "ecr:BatchGetImage"
+        Effect   = "Allow"
+        Resource = "*"
+      },
+      {
+        Action   = "ecr:BatchCheckLayerAvailability"
+        Effect   = "Allow"
+        Resource = "*"
+      },
+      {
+        Action   = "ecr:GetDownloadUrlForLayer"
+        Effect   = "Allow"
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_execution_role_policy" {
+  role       = aws_iam_role.ecs_execution_role.name
+  policy_arn = aws_iam_policy.ecs_ecr_policy.arn
+}
+
+
 # ECS Cluster
 resource "aws_ecs_cluster" "main" {
   name = "main-ecs-cluster"
 }
 
-# ECS Task Definitions for Services running on different ports (80 and 8080)
 resource "aws_ecs_task_definition" "service_80_task" {
   family                   = "service-80-task"
   execution_role_arn       = aws_iam_role.ecs_execution_role.arn
@@ -57,7 +116,7 @@ resource "aws_ecs_task_definition" "service_80_task" {
 
   container_definitions = jsonencode([{
     name      = "service-80-container"
-    image     = "nginx:latest"
+    image     = "wordpress:latest"
     essential = true
     portMappings = [
       {
@@ -66,11 +125,32 @@ resource "aws_ecs_task_definition" "service_80_task" {
         protocol      = "tcp"
       }
     ]
+    environment = [
+      {
+        name  = "WORDPRESS_DB_HOST"
+        value = aws_db_instance.mydb.endpoint  # Dynamically fetch RDS DB endpoint
+      },
+      {
+        name  = "WORDPRESS_DB_NAME"
+        value = local.secret_values["DB_NAME"]  # Fetch database name from the decoded secret
+      }
+    ]
+    secrets = [
+      {
+        name      = "WORDPRESS_DB_USER"
+        valueFrom = "arn:aws:secretsmanager:us-east-1:241533153772:secret:wordpress-db-credentials-qigJ7r:DB_USER"
+      },
+      {
+        name      = "WORDPRESS_DB_PASSWORD"
+        valueFrom = "arn:aws:secretsmanager:us-east-1:241533153772:secret:wordpress-db-credentials-qigJ7r:DB_PASSWORD"
+      }
+    ]
   }])
 }
 
-resource "aws_ecs_task_definition" "service_8080_task" {
-  family                   = "service-8080-task"
+
+resource "aws_ecs_task_definition" "service_3000_task" {
+  family                   = "service-3000-task"
   execution_role_arn       = aws_iam_role.ecs_execution_role.arn
   task_role_arn            = aws_iam_role.ecs_task_role.arn
   network_mode             = "awsvpc"
@@ -79,13 +159,13 @@ resource "aws_ecs_task_definition" "service_8080_task" {
   memory                   = "512"
 
   container_definitions = jsonencode([{
-    name      = "service-8080-container"
-    image     = "wordpress:latest"
+    name      = "service-3000-container"
+    image     = "241533153772.dkr.ecr.us-east-1.amazonaws.com/custom-image:latest"
     essential = true
     portMappings = [
       {
-        containerPort = 8080
-        hostPort      = 8080
+        containerPort = 3000
+        hostPort      = 3000
         protocol      = "tcp"
       }
     ]
@@ -126,19 +206,33 @@ resource "aws_security_group" "ecs_sg" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+
   egress {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
-
+  
   # Allow traffic from the ALB to ECS tasks
   ingress {
     from_port       = 80
     to_port         = 80
     protocol        = "tcp"
     security_groups = [aws_security_group.app_lb_sg.id]
+  }
+  ingress {
+    from_port   = 3000
+    to_port     = 3000
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
@@ -154,7 +248,7 @@ resource "aws_lb" "app_lb" {
   enable_cross_zone_load_balancing = true
 }
 
-# Target Group for Service 80 (nginx:latest on port 80)
+# Target Group for Service 80 (wordpress:latest on port 80)
 resource "aws_lb_target_group" "service_80_target_group" {
   name        = "service-80-target-group"
   port        = 80
@@ -172,10 +266,10 @@ resource "aws_lb_target_group" "service_80_target_group" {
   }
 }
 
-# Target Group for Service 8080 (wordpress:latest on port 8080)
-resource "aws_lb_target_group" "service_8080_target_group" {
-  name        = "service-8080-target-group"
-  port        = 8080
+# Target Group for Service 3000 (:latest on port 3000)
+resource "aws_lb_target_group" "service_3000_target_group" {
+  name        = "service-3000-target-group"
+  port        = 3000
   protocol    = "HTTP"
   vpc_id      = aws_vpc.main.id
   target_type = "ip"
@@ -220,13 +314,13 @@ resource "aws_lb_listener_rule" "service_80_routing" {
   }
 }
 
-resource "aws_lb_listener_rule" "service_8080_routing" {
+resource "aws_lb_listener_rule" "service_3000_routing" {
   listener_arn = aws_lb_listener.http_listener.arn
   priority     = 200  # Nginx routing rule with lower priority
 
   action {
     type             = "forward"
-    target_group_arn = aws_lb_target_group.service_8080_target_group.arn
+    target_group_arn = aws_lb_target_group.service_3000_target_group.arn
   }
 
   condition {
@@ -262,11 +356,11 @@ resource "aws_ecs_service" "service_80" {
   ]
 }
 
-# ECS Service for Service 8080 (wordpress:latest on port 8080)
-resource "aws_ecs_service" "service_8080" {
-  name            = "service-8080"
+# ECS Service for Service 3000 (wordpress:latest on port 3000)
+resource "aws_ecs_service" "service_3000" {
+  name            = "service-3000"
   cluster         = aws_ecs_cluster.main.id
-  task_definition = aws_ecs_task_definition.service_8080_task.arn
+  task_definition = aws_ecs_task_definition.service_3000_task.arn
   desired_count   = 2
   launch_type     = "FARGATE"
 
@@ -277,14 +371,14 @@ resource "aws_ecs_service" "service_8080" {
   }
 
   load_balancer {
-    target_group_arn = aws_lb_target_group.service_8080_target_group.arn
-    container_name   = "service-8080-container"
-    container_port   = 8080
+    target_group_arn = aws_lb_target_group.service_3000_target_group.arn
+    container_name   = "service-3000-container"
+    container_port   = 3000
   }
 
   depends_on = [
     aws_lb.app_lb,
-    aws_lb_target_group.service_8080_target_group
+    aws_lb_target_group.service_3000_target_group
   ]
 }
 
@@ -306,7 +400,7 @@ resource "aws_route53_record" "service_80_record" {
   }
 }
 
-resource "aws_route53_record" "service_8080_record" {
+resource "aws_route53_record" "service_3000_record" {
   zone_id = data.aws_route53_zone.main.id
   name    = "service2.${var.domain_name}"
   type    = "A"
@@ -327,6 +421,6 @@ output "service_80_dns" {
   value = "service1.${var.domain_name}"
 }
 
-output "service_8080_dns" {
+output "service_3000_dns" {
   value = "service2.${var.domain_name}"
 }

@@ -53,7 +53,7 @@ module "ec2" {
   instance_type   = "t2.micro"
   private_subnets = module.vpc.private_subnets
   key_name        = "venu-test"
-  user_data       = file("${path.root}/userdata.sh") # Use the userdata.sh file from root
+  user_data       = filebase64("${path.root}/userdata.sh") # Use the userdata.sh file from root
   name            = "demo"
   security_groups = [aws_security_group.all_traffic_sg.id] # Add the all-traffic SG
 }
