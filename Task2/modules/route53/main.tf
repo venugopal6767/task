@@ -1,7 +1,3 @@
-# route53/main.tf
-provider "aws" {
-  region = "us-east-1"  # Replace with your desired region
-}
 
 # Fetch the existing Route 53 hosted zone using domain name
 data "aws_route53_zone" "existing_zone" {

@@ -1,3 +1,18 @@
+# Data source to retrieve the 'wordpress-db-credentials' secret using its ARN
+data "aws_secretsmanager_secret" "wordpress_db_credentials" {
+  arn = "arn:aws:secretsmanager:us-east-1:241533153772:secret:wordpress-db-credentials-qigJ7r"  # Secret ARN
+}
+
+# Retrieve the version of the 'wordpress-db-credentials' secret
+data "aws_secretsmanager_secret_version" "wordpress_db_credentials_version" {
+  secret_id = data.aws_secretsmanager_secret.wordpress_db_credentials.id
+}
+
+# Decode the secret (assumes it's stored as a JSON object)
+locals {
+  secret_values = jsondecode(data.aws_secretsmanager_secret_version.wordpress_db_credentials_version.secret_string)
+}
+
 resource "aws_db_subnet_group" "mydb_subnet_group" {
   name       = "mydb-subnet-group"
   subnet_ids = [aws_subnet.private_subnet_1.id, aws_subnet.private_subnet_2.id]  # Reference your subnets here

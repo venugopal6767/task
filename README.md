@@ -13,9 +13,16 @@ ecs.tf
 4.created a hosted zone in aws and created a A records for both subdomains and configured the load balancer
 5.stored secrets in aws secrets manager and retrived using secrets manager data  and passed to db and task definition 
 
+go to Task1:
+terraform init
+terraform validate
+terraform apply
+
 If we hit(http) 
  wordpress.venugopalmoka.site  -----> it will give wordpress website
- microservice.venugopalmoka.site ----> It will redirect to microservice output (getting 502 error)
+ microservice.venugopalmoka.site ----> It will give microservice output
+
+
 
  
 
@@ -35,7 +42,11 @@ Manual:
     ec2-alb-docker.venugopalmoka.sie ------> instance output
 
 using Terraform:
-1. Created vpc, Ec2 instances in private subnet and routes in dns
+1. created entire setup using terraform 
+2. unable to load userdata
+3. If we configure manually it will work
+         ec2-alb-docker.venugopalmoka.site -----> docker containeroutput
+         ec2-alb-docker.venugopalmoka.sie ------> instance output
 
 #task3
 -----------------

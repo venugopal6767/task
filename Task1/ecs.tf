@@ -125,28 +125,9 @@ resource "aws_ecs_task_definition" "service_80_task" {
         protocol      = "tcp"
       }
     ]
-    environment = [
-      {
-        name  = "WORDPRESS_DB_HOST"
-        value = aws_db_instance.mydb.endpoint  # Dynamically fetch RDS DB endpoint
-      },
-      {
-        name  = "WORDPRESS_DB_NAME"
-        value = local.secret_values["DB_NAME"]  # Fetch database name from the decoded secret
-      }
-    ]
-    secrets = [
-      {
-        name      = "WORDPRESS_DB_USER"
-        valueFrom = "arn:aws:secretsmanager:us-east-1:241533153772:secret:wordpress-db-credentials-qigJ7r:DB_USER"
-      },
-      {
-        name      = "WORDPRESS_DB_PASSWORD"
-        valueFrom = "arn:aws:secretsmanager:us-east-1:241533153772:secret:wordpress-db-credentials-qigJ7r:DB_PASSWORD"
-      }
-    ]
   }])
 }
+
 
 
 resource "aws_ecs_task_definition" "service_3000_task" {
