@@ -36,3 +36,11 @@ jobs:
     - name: Push Docker image to ECR
       run: |
         docker push ${{ secrets.ECR_REPOSITORY_URI }}:latest
+
+    - name: Update ECS service
+      run: |
+        aws ecs update-service \
+          --cluster ${YOUR_ECS_CLUSTER_NAME} \
+          --service ${YOUR_ECS_SERVICE_NAME} \
+          --force-new-deployment \
+          --region us-east-1
