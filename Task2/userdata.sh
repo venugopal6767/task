@@ -11,6 +11,7 @@ systemctl start nginx
 systemctl enable nginx
 systemctl start docker
 systemctl enable docker
+chmod 777 /var/run/docker.sock
 
 # Remove the default NGINX configuration
 rm -f /etc/nginx/sites-enabled/default
