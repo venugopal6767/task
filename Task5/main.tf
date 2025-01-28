@@ -19,6 +19,7 @@ resource "aws_s3_bucket_public_access_block" "example" {
   block_public_acls       = false
   ignore_public_acls      = false
   restrict_public_buckets = false
+  block_public_policy     = false
 }
 
 
@@ -57,7 +58,7 @@ resource "aws_s3_bucket_policy" "host_bucket_policy" {
 module "template_files" {
     source = "hashicorp/dir/template"
 
-    base_dir = "${path.module}/game"
+    base_dir = "${path.module}/oxer-html"
 }
 
 

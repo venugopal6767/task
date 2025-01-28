@@ -26,7 +26,12 @@ resource "aws_iam_policy" "ecs_secrets_policy" {
     Statement = [
       {
         Effect   = "Allow"
-        Action   = "secretsmanager:GetSecretValue"
+        Action   = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret",
+          "secretsmanager:CreateSecret",
+          "secretsmanager:ListSecrets"
+        ]
         Resource = var.secrets_manager_arn
       }
     ]

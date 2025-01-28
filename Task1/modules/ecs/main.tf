@@ -24,14 +24,25 @@ resource "aws_ecs_task_definition" "service_80_task" {
       }
     ]
     environment = [
+      # Non-sensitive variables
       {
-        name  = "DB_USER"
-        valueFrom = {
-          secretsManagerSecretRef = {
-            name = var.secrets_manager_arn
-            key  = "DB_USER"  # the secret key inside Secrets Manager
-          }
-        }
+        name  = "WORDPRESS_DB_HOST"
+        value = var.rds_endpoint  # RDS instance endpoint
+      }
+    ]
+    secrets = [
+      # Sensitive variables (MySQL credentials and DB name) from Secrets Manager
+      {
+        name      = "WORDPRESS_DB_USER"   # Environment variable for DB username
+        valueFrom = "${var.secrets_manager_arn}:username::"  # Reference the username from Secrets Manager
+      },
+      {
+        name      = "WORDPRESS_DB_PASSWORD"   # Environment variable for DB password
+        valueFrom = "${var.secrets_manager_arn}:password::"  # Reference the password from Secrets Manager
+      },
+      {
+        name      = "WORDPRESS_DB_NAME"   # Environment variable for DB name
+        valueFrom = "${var.secrets_manager_arn}:db_name::"  # Reference the db_name from Secrets Manager
       }
     ]
   }])

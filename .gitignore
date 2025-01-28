@@ -7,6 +7,7 @@ crash.log
 
 # Ignore .terraform directory, which contains Terraform modules and plugins
 .terraform/
+.*.lock.hcl
 
 # Ignore override files
 override.tf

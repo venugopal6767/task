@@ -41,15 +41,14 @@ module "route53" {
 }
 
 module "secretsmanager" {
-  source          = "./modules/secretsmanager"
-  db_user       = "admin"
-  db_password   = "password"
+    source = "./modules/secretsmanager"
+    secret_name = "mydb/rds/credentials"
+    db_username  = "admin"
+    db_name = "wordpress"
 }
 
 module "rds" {
-  source              = "./modules/rds"
-  identifier          = "my-mysql-instance"
-  username            = "admin"  # MySQL username
-  password            = "your-secure-password"  # Replace with a strong password
-#   name                = "mydatabase"
+    source = "./modules/rds"
+    secret_id = module.secretsmanager.secret_arn
+    depends_on = [module.secretsmanager]
 }

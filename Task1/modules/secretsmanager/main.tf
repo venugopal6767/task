@@ -1,15 +1,23 @@
-# modules/secretsmanager/main.tf
-
-resource "aws_secretsmanager_secret" "rds_mysql_secret" {
-  name        = "rds_mysql_secret"
-  description = "MySQL Database Credentials"
+resource "random_password" "password" {
+  length           = 16
+  special          = true
+  override_special = "!#$%&*()-_=+[]{}<>:?"
 }
 
-resource "aws_secretsmanager_secret_version" "rds_mysql_secret_version" {
-  secret_id     = aws_secretsmanager_secret.rds_mysql_secret.id
+resource "aws_secretsmanager_secret" "rds_secret" {
+  name        = var.secret_name
+  description = "RDS MySQL credentials (username and password)"
+
+  tags = {
+    "name" = "rds-secrets"
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "rds_secret_version" {
+  secret_id     = aws_secretsmanager_secret.rds_secret.id
   secret_string = jsonencode({
-    DB_PASSWORD = var.db_password
-    DB_USER     = var.db_user
+    username = var.db_username
+    db_name  = var.db_name
+    password = random_password.password.result
   })
 }
-
