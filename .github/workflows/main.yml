@@ -26,11 +26,10 @@ jobs:
 
     - name: Build Docker image, tag and push to ecr
       run: |
-        cd Task4
-        IMAGE_TAG=$(date +'%d%m%Y')  # Use current date and time as tag
-        docker build -t custom-image:$IMAGE_TAG .
-        docker tag custom-image:$IMAGE_TAG ${{ secrets.ECR_REPOSITORY_URI }}/custom-image:$IMAGE_TAG
-        docker push ${{ secrets.ECR_REPOSITORY_URI }}/custom-image:$IMAGE_TAG
+        cd Task4 
+        docker build -t custom-image:latest .
+        docker tag custom-image:latest ${{ secrets.ECR_REPOSITORY_URI }}/custom-image:latest
+        docker push ${{ secrets.ECR_REPOSITORY_URI }}/custom-image:latest
     
           # Step 5: Download the current task definition
     - name: Download task definition
@@ -44,7 +43,7 @@ jobs:
       with:
         task-definition: task-definition.json
         container-name: service-3000-container
-        image: ${{ secrets.ECR_REPOSITORY_URI }}/custom-image:$IMAGE_TAG
+        image: ${{ secrets.ECR_REPOSITORY_URI }}/custom-image:latest
 
     # Step 7: Deploy the updated task definition
     - name: Deploy Amazon ECS task definition
