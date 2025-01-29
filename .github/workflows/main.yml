@@ -33,9 +33,9 @@ jobs:
           IMAGE_TAG: ${{ runner.os }}-$(date +'%Y%m%d')  # Use date format (YYYYMMDD)
         run: |
           cd Task4
-          docker build -t ${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG .
-          docker tag ${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG  ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
-          docker push ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
+          docker build -t custom-image:$IMAGE_TAG .
+          docker tag custom-image:$IMAGE_TAG  ${{ secrets.ECR_REGISTRY }}/custom-image:$IMAGE_TAG
+          docker push ${{ secrets.ECR_REGISTRY }}/custom-image:$IMAGE_TAG
 
       # Step 5: Download the current task definition
       - name: Download task definition
@@ -49,7 +49,7 @@ jobs:
         with:
           task-definition: task-definition.json
           container-name: ${{ secrets.ECS_CONTAINER_NAME }}
-          image: ${{ secrets.ECR_REGISTRY }}/${{ secrets.ECR_REPOSITORY }}:$IMAGE_TAG
+          image: ${{ secrets.ECR_REGISTRY }}/custom-image:$IMAGE_TAG
 
       # Step 7: Deploy the updated task definition
       - name: Deploy Amazon ECS task definition
