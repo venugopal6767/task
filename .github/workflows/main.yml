@@ -35,7 +35,7 @@ jobs:
           # Step 5: Download the current task definition
     - name: Download task definition
       run: |
-        aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION }} --query taskDefinition > task-definition.json
+        aws ecs describe-task-definition --task-definition service-3000-task --query taskDefinition > task-definition.json
 
     # Step 6: Update the container image in the task definition
     - name: Fill in new image ID in task definition
@@ -43,7 +43,7 @@ jobs:
       uses: aws-actions/amazon-ecs-render-task-definition@v1
       with:
         task-definition: task-definition.json
-        container-name: ${{ secrets.ECS_CONTAINER_NAME }}
+        container-name: service-3000-container
         image: ${{ secrets.ECR_REPOSITORY_URI }}/custom-image:$IMAGE_TAG
 
     # Step 7: Deploy the updated task definition
@@ -51,5 +51,5 @@ jobs:
       uses: aws-actions/amazon-ecs-deploy-task-definition@v1
       with:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
-        service: ${{ secrets.ECS_SERVICE }}
-        cluster: ${{ secrets.ECS_CLUSTER }}
+        service: microservice
+        cluster: main-ecs-cluster
