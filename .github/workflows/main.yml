@@ -24,18 +24,10 @@ jobs:
       run: |
         aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${{ secrets.ECR_REPOSITORY_URI }}
 
-    - name: Build Docker image
+    - name: Build Docker image, tag and push to ecr
       run: |
         cd Task4
         IMAGE_TAG=$(date +%Y%m%d%H%M%S)  # Use current date and time as tag
         docker build -t custom-image:$IMAGE_TAG .
-
-    - name: Tag Docker image
-      run: |
-        IMAGE_TAG=$(date +%Y%m%d%H%M%S)  # Use current date and time as tag
-        docker tag custom-image:$IMAGE_TAG ${{ secrets.ECR_REPOSITORY_URI }}:$IMAGE_TAG
-
-    - name: Push Docker image to ECR
-      run: |
-        IMAGE_TAG=$(date +%Y%m%d%H%M%S)  # Use current date and time as tag
-        docker push ${{ secrets.ECR_REPOSITORY_URI }}:$IMAGE_TAG
+        docker tag custom-image:$IMAGE_TAG ${{ secrets.ECR_REPOSITORY_URI }}/custom-image:$IMAGE_TAG
+        docker push ${{ secrets.ECR_REPOSITORY_URI }}/custom-image:$IMAGE_TAG
