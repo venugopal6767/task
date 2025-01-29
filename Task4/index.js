@@ -5,7 +5,7 @@ const port = 3000; // You can change the port if needed
 
 // Define a route for the root URL
 app.get('/', (req, res) => {
-  res.send('Hello from microservice');
+  res.send('Hello from microservice-testing');
 });
 
 // Start the server

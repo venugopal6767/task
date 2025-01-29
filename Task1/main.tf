@@ -21,6 +21,7 @@ module "ecs" {
     service_3000_target_group = module.alb.service_3000_target_group
     rds_endpoint              = module.rds.rds_endpoint
     secrets_manager_arn       = module.secretsmanager.secret_arn
+    depends_on                = [module.secretsmanager]
 }
 
 module "alb" {
@@ -42,13 +43,16 @@ module "route53" {
 
 module "secretsmanager" {
     source = "./modules/secretsmanager"
-    secret_name = "mydb/rds/credentials"
+    secret_name = "mydb/credentials1"
     db_username  = "admin"
     db_name = "wordpress"
 }
 
 module "rds" {
     source = "./modules/rds"
-    secret_id = module.secretsmanager.secret_arn
+    secret_arn            = module.secretsmanager.secret_arn
+    security_group_id     = module.vpc.security_group_id
+    private_subnet1_id    = module.vpc.private_subnet_1_id
+    private_subnet2_id    = module.vpc.private_subnet_2_id
     depends_on = [module.secretsmanager]
 }
