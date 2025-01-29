@@ -31,3 +31,25 @@ jobs:
         docker build -t custom-image:$IMAGE_TAG .
         docker tag custom-image:$IMAGE_TAG ${{ secrets.ECR_REPOSITORY_URI }}/custom-image:$IMAGE_TAG
         docker push ${{ secrets.ECR_REPOSITORY_URI }}/custom-image:$IMAGE_TAG
+    
+          # Step 5: Download the current task definition
+    - name: Download task definition
+      run: |
+        aws ecs describe-task-definition --task-definition ${{ secrets.ECS_TASK_DEFINITION }} --query taskDefinition > task-definition.json
+
+    # Step 6: Update the container image in the task definition
+    - name: Fill in new image ID in task definition
+      id: task-def
+      uses: aws-actions/amazon-ecs-render-task-definition@v1
+      with:
+        task-definition: task-definition.json
+        container-name: ${{ secrets.ECS_CONTAINER_NAME }}
+        image: ${{ secrets.ECR_REPOSITORY_URI }}/custom-image:$IMAGE_TAG
+
+    # Step 7: Deploy the updated task definition
+    - name: Deploy Amazon ECS task definition
+      uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+      with:
+        task-definition: ${{ steps.task-def.outputs.task-definition }}
+        service: ${{ secrets.ECS_SERVICE }}
+        cluster: ${{ secrets.ECS_CLUSTER }}
