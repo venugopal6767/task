@@ -27,7 +27,7 @@ jobs:
     - name: Build Docker image, tag and push to ecr
       run: |
         cd Task4
-        IMAGE_TAG=$(date +%Y%m%d%H%M%S)  # Use current date and time as tag
+        IMAGE_TAG: $(date +'%d%m%Y')  # Use current date and time as tag
         docker build -t custom-image:$IMAGE_TAG .
         docker tag custom-image:$IMAGE_TAG ${{ secrets.ECR_REPOSITORY_URI }}/custom-image:$IMAGE_TAG
         docker push ${{ secrets.ECR_REPOSITORY_URI }}/custom-image:$IMAGE_TAG
